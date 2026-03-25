@@ -9,6 +9,7 @@ const NAV = [
   { href: '/contacts',  label: 'Contacts & Leads',   icon: '◉', adminOnly: false },
   { href: '/tasks',     label: 'Tasks & Follow-ups', icon: '✓', adminOnly: false },
   { href: '/messages',  label: 'Delivery Messages',  icon: '✉', adminOnly: false },
+  { href: '/deals',    label: 'Deals Pipeline',      icon: '◈', adminOnly: false },
   { href: '/team',      label: 'Team',               icon: '⊞', adminOnly: true  },
 ];
 
