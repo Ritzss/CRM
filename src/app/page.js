@@ -1,2 +1,2 @@
 import { redirect } from 'next/navigation';
-export default function Home() { redirect('/contacts'); }
+export default function Home() { redirect('/analytics'); }
