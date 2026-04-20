@@ -6,29 +6,59 @@ import { createClient } from '@/lib/supabase-browser';
 import { Button } from '@/components/ui/Button';
 import { Input, FormField } from '@/components/ui/Input';
 
+const MAX_ADMINS = 2;
+
 export default function RegisterPage() {
   const router = useRouter();
-  const [form, setForm]       = useState({ name:'', email:'', password:'', confirm:'', role:'employee' });
-  const [error, setError]     = useState('');
-  const [loading, setLoading] = useState(false);
+  const [form, setForm]         = useState({ name:'', email:'', password:'', confirm:'', role:'employee' });
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [adminCount, setAdminCount] = useState(null); // null = not checked yet
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
+
+  // Check admin count when user clicks Admin button
+  async function handleRoleSelect(role) {
+    set('role', role);
+    if (role === 'admin') {
+      const db = createClient();
+      const { count } = await db
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'admin');
+      setAdminCount(count || 0);
+    } else {
+      setAdminCount(null);
+    }
+  }
+
+  const adminLimitReached = form.role === 'admin' && adminCount !== null && adminCount >= MAX_ADMINS;
 
   async function handleRegister(e) {
     e.preventDefault();
     if (form.password !== form.confirm) { setError('Passwords do not match.'); return; }
-    if (form.password.length < 6) { setError('Password must be at least 6 characters.'); return; }
-    setLoading(true); setError('');
+    if (form.password.length < 6)       { setError('Password must be at least 6 characters.'); return; }
 
+    // Final server-side check before submitting
+    if (form.role === 'admin') {
+      const db = createClient();
+      const { count } = await db
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'admin');
+      if ((count || 0) >= MAX_ADMINS) {
+        setError(`Maximum of ${MAX_ADMINS} admins allowed. Please register as an Employee.`);
+        return;
+      }
+    }
+
+    setLoading(true); setError('');
     const db = createClient();
 
-    // Step 1 — sign up (trigger will create profile row with role from metadata)
     const { data, error: signUpErr } = await db.auth.signUp({
       email: form.email,
       password: form.password,
-      options: {
-        data: { full_name: form.name, role: form.role },
-      },
+      options: { data: { full_name: form.name, role: form.role } },
     });
 
     if (signUpErr) { setError(signUpErr.message); setLoading(false); return; }
@@ -39,22 +69,12 @@ export default function RegisterPage() {
       return;
     }
 
-    // Step 2 — explicitly upsert the profile so the role is definitely saved
-    // This runs with the freshly authenticated session
     const { error: profileErr } = await db.from('profiles').upsert({
-      id:        data.user.id,
-      full_name: form.name,
-      email:     form.email,
-      role:      form.role,          // ← this is the critical field
+      id: data.user.id, full_name: form.name, email: form.email, role: form.role,
     }, { onConflict: 'id' });
 
-    if (profileErr) {
-      // Profile save failed — still let them in, but log it
-      console.error('Profile upsert failed:', profileErr.message);
-    }
+    if (profileErr) console.error('Profile upsert failed:', profileErr.message);
 
-    // Step 3 — if Supabase returned a session immediately (email confirm disabled),
-    // go straight to app. Otherwise send to login.
     if (data.session) {
       router.push('/analytics');
       router.refresh();
@@ -87,7 +107,7 @@ export default function RegisterPage() {
             <FormField label="Role">
               <div className="grid grid-cols-2 gap-2">
                 {[['employee','👤','Employee'],['admin','🛡️','Admin']].map(([val, icon, lbl]) => (
-                  <button key={val} type="button" onClick={() => set('role', val)}
+                  <button key={val} type="button" onClick={() => handleRoleSelect(val)}
                     className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border text-sm transition cursor-pointer
                       ${form.role === val
                         ? 'border-emerald-400 bg-emerald-50 text-emerald-700 font-semibold'
@@ -97,8 +117,23 @@ export default function RegisterPage() {
                   </button>
                 ))}
               </div>
+
+              {/* Admin limit warning */}
+              {adminLimitReached && (
+                <div className="mt-2 px-3 py-2 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600">
+                  ⚠️ Maximum of {MAX_ADMINS} admins already exist. Please register as an Employee.
+                </div>
+              )}
+
+              {/* Admin count indicator */}
+              {form.role === 'admin' && adminCount !== null && !adminLimitReached && (
+                <div className="mt-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-700">
+                  {adminCount} of {MAX_ADMINS} admin slot{MAX_ADMINS !== 1 ? 's' : ''} used.
+                </div>
+              )}
+
               <p className="text-[11px] text-gray-400 mt-1.5">
-                Admins can add/delete contacts and manage the team. Employees have read access.
+                Admins can add/delete contacts and manage the team. Max {MAX_ADMINS} admins allowed.
               </p>
             </FormField>
 
@@ -114,7 +149,10 @@ export default function RegisterPage() {
               <div className="px-3 py-2.5 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600">{error}</div>
             )}
 
-            <Button type="submit" disabled={loading} className="w-full justify-center py-2.5">
+            <Button
+              type="submit"
+              disabled={loading || adminLimitReached}
+              className="w-full justify-center py-2.5">
               {loading ? 'Creating account…' : 'Create account'}
             </Button>
           </form>
