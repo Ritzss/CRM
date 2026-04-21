@@ -11,7 +11,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={dmSans.className} cz-shortcut-listen="true">{children}</body>
+      <body className={dmSans.className}  cz-shortcut-listen="true">{children}</body>
     </html>
   );
 }

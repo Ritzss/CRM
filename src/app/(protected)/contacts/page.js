@@ -9,5 +9,5 @@ export default async function ContactsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: profile }  = await supabase.from('profiles').select('role').eq('id', user.id).single();
   const { data: contacts } = await supabase.from('contacts').select('*').order('created_at', { ascending: false });
-  return <ContactsClient initial={contacts||[]} isAdmin={profile?.role==='admin'} />;
+  return <ContactsClient initial={contacts||[]} isAdmin={profile?.role==='admin' || profile?.role==='superadmin'} />;
 }

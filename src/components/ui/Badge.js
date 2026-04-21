@@ -17,9 +17,9 @@ export function StatusBadge({ status }) {
 }
 
 export function RoleBadge({ role }) {
-  return role === 'admin'
-    ? <Badge className="bg-violet-50 text-violet-700">Admin</Badge>
-    : <Badge className="bg-sky-50 text-sky-700">Employee</Badge>;
+  if (role === 'superadmin') return <Badge className="bg-yellow-50 text-yellow-700 border border-yellow-200">👑 Super Admin</Badge>;
+  if (role === 'admin') return <Badge className="bg-violet-50 text-violet-700">Admin</Badge>;
+  return <Badge className="bg-sky-50 text-sky-700">Employee</Badge>;
 }
 
 export function StageBadge({ stage }) {

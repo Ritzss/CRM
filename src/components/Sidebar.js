@@ -12,7 +12,12 @@ export default function Sidebar({ profile, user }) {
   const router  = useRouter();
   const [signing, setSigning] = useState(false);
   const isAdmin = profile?.role === 'admin';
-  const nav     = NAV_ITEMS.filter(n => !n.adminOnly || isAdmin);
+  const isSuperAdmin = profile?.role === 'superadmin';
+  const nav     = NAV_ITEMS.filter(n => {
+    if (n.superAdminOnly) return isSuperAdmin;
+    if (n.adminOnly) return isAdmin || isSuperAdmin;
+    return true;
+  });
 
   async function signOut() {
     setSigning(true);

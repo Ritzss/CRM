@@ -10,5 +10,5 @@ export default async function TasksPage() {
     supabase.from('tasks').select('*').order('created_at', { ascending: false }),
     supabase.from('contacts').select('id, name').order('name'),
   ]);
-  return <TasksClient initialTasks={tasks||[]} initialContacts={contacts||[]} isAdmin={profile?.role==='admin'} />;
+  return <TasksClient initialTasks={tasks||[]} initialContacts={contacts||[]} isAdmin={profile?.role==='admin' || profile?.role==='superadmin'} />;
 }

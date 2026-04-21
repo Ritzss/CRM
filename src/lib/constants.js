@@ -33,6 +33,7 @@ export const NAV_ITEMS = [
   { href: '/tasks',     label: 'Tasks',              icon: '✓', adminOnly: false },
   { href: '/messages',  label: 'Messages',           icon: '✉', adminOnly: false },
   { href: '/team',      label: 'Team',               icon: '⊞', adminOnly: true  },
+  { href: '/superadmin', label: 'Super Admin',        icon: '👑', superAdminOnly: true },
   { href: '/settings',  label: 'Settings',           icon: '⚙', adminOnly: false },
 ];
 
