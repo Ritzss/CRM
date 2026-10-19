@@ -1,0 +1,64 @@
+name: Sync to new GitHub account
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Sync branches and tags
+        shell: bash
+        env:
+          DESTINATION_TOKEN: ${{ secrets.NEW_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$DESTINATION_TOKEN" ]]; then
+            echo "::error::NEW_GITHUB_TOKEN secret is missing."
+            exit 1
+          fi
+
+          destination_url="https://github.com/Ritanshu-ADS247365/CRM-Vastradrobe_demo.git"
+
+          auth_header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$DESTINATION_TOKEN" | base64 -w0)"
+
+          echo "Checking destination access..."
+
+          git -c http.https://github.com/.extraheader="$auth_header" \
+            ls-remote "$destination_url" HEAD
+
+          echo "Syncing branches..."
+
+          while IFS= read -r ref; do
+            branch="${ref#refs/remotes/origin/}"
+
+            if [[ "$branch" == "HEAD" ]]; then
+              continue
+            fi
+
+            echo "Pushing branch: $branch"
+
+            git -c http.https://github.com/.extraheader="$auth_header" \
+              push "$destination_url" "$ref:refs/heads/$branch"
+
+          done < <(git for-each-ref --format='%(refname)' refs/remotes/origin)
+
+          echo "Syncing tags..."
+
+          git -c http.https://github.com/.extraheader="$auth_header" \
+            push "$destination_url" 'refs/tags/*:refs/tags/*'
+
+          echo "Sync completed successfully."
